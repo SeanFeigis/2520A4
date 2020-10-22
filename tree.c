@@ -43,7 +43,8 @@ void attachNode (struct Performance *performance, struct Node **node_ptr, void *
 
 }
 
-int compareNode (struct Performance *performance, struct Node **node_ptr, int (*compar)(const void *, const void *),void *target) {
+int comparNode (struct Performance *performance, struct Node **node_ptr, int (*compar)(const void *, const void *),void *target) {
+  performance->reads++;
   return (compar(target, (*node_ptr)->data)); //returns the comparison
 }
 
@@ -92,17 +93,29 @@ void detachNode (struct Performance *performance, struct Node **node_ptr) {
 }
 
 
+ int isEmpty( struct Performance *performance, struct Node **node_ptr) {
+   if (*node_ptr) {
+     return 0;
+   } else {
+     return 1;
+   }
+ }
+
+//DERIVED FUNCTIONS
+
+
+
 void addItem (struct Performance *performance, struct Node **node_ptr, int (*compar)(const void *, const void *), void *src, unsigned int width) {
   struct Node **tree_temp = node_ptr; //sets the traversing node
 
-  while (*tree_temp) {
-    tree_temp = next(performance, tree_temp, compareNode(performance, tree_temp, compar, src)); //traverse through the tree in the correct direction by cmp
+  while (!isEmpty(performance, tree_temp)) {
+    tree_temp = next(performance, tree_temp, comparNode(performance, tree_temp, compar, src)); //traverse through the tree in the correct direction by cmp
   }
   attachNode(performance, tree_temp, src, width); //add the node to the furthest child
 }
 
 void freeTree( struct Performance *performance, struct Node **node_ptr) {
-  if (*node_ptr) {
+  if (!isEmpty(performance, node_ptr)) {
     freeTree(performance, next(performance, node_ptr, -1)); //go all the way to the left
     freeTree(performance, next(performance, node_ptr, 1)); //go all the way to the right
     detachNode(performance, node_ptr); //remove the node
@@ -111,28 +124,18 @@ void freeTree( struct Performance *performance, struct Node **node_ptr) {
 
 int searchItem( struct Performance *performance, struct Node **node_ptr, int (*compar)(const void *, const void *), void *target, unsigned int width) {
   struct Node **tree_temp = node_ptr;
-  void *dest = malloc(width);
+  int comparVal = 0;
 
-  while (*tree_temp) {
-    readNode(performance, tree_temp, dest, width); //read the current node
-    if (!compar(dest, target)) { //compare it to the target
-      free(dest);
+  while (!isEmpty(performance,tree_temp)) {
+    comparVal = comparNode(performance, tree_temp, compar, target);
+
+    if (!comparVal) { //compare it to the target
+      readNode(performance, tree_temp, target, width); //read the current node
       return 1;
     }
-    tree_temp = next(performance, tree_temp, compareNode(performance, tree_temp, compar, target)); //traverse in the correct direction
+
+    tree_temp = next(performance, tree_temp, comparVal); //traverse in the correct direction
   }
 
-  free(dest); //free the temp
   return(0);
 }
-
-
-
-
-
-
-
-
-
-
-//asd
